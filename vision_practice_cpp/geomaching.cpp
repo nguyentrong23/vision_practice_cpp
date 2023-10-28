@@ -1,50 +1,66 @@
-﻿#include "matching.h"
+#include "geomaching.h"
 
-matching::matching()
+geomaching::geomaching()
 {
 
 }
 
-matching::~matching()
+geomaching::~geomaching()
 {
 
 }
-bool matching::addmatchingModel(String pathTemplate, String modelName)
-{
-	model temp_model(pathTemplate, modelName);
-	if (temp_model.imageEmpty())
-	{
+
+// lear pattern
+bool geomaching::addgeomachingModel(String pathTemplate, String modelName) {
+
+	GeometricModel tempModel(pathTemplate, modelName);
+	// check image model read success or not
+	if (tempModel.imageEmpty()) {
 		return false;
 	}
-	temp_model.learnPattern(true);
-	ModelSrc.push_back(temp_model);
-	return true;
+
+	tempModel.learnPattern(true);
+
+	// debug
+	std::cout << modelName << ": PCA angle - " << tempModel.getPcaAngle() << endl;
+
+	// push to list at bottom
+	ModelSrc.push_back(tempModel);
 }
-bool matching::addmatchingModel(String pathTemplate, String modelName, int pyrDownLevel)
-{
-	model temp_model(pathTemplate, modelName,pyrDownLevel);
-	if (temp_model.imageEmpty())
-	{
+
+bool geomaching::addgeomachingModel(String pathTemplate, String modelName, int pyrDownLevel) {
+
+	GeometricModel tempModel(pathTemplate, modelName, pyrDownLevel);
+	// check image model read success or not
+	if (tempModel.imageEmpty()) {
 		return false;
 	}
-	temp_model.learnPattern(true);
-	ModelSrc.push_back(temp_model);
-	return true;
+
+	tempModel.learnPattern(true);
+
+	// push to list at bottom
+	ModelSrc.push_back(tempModel);
 }
-void matching::clearMatchModel(void)
-{
+
+
+// clear model source data
+void geomaching::clearMatchModel(void) {
 	ModelSrc.clear();
 }
-void matching::removeMatchModel(int index)
-{
+
+// remove one model from source with index
+void geomaching::removeMatchModel(int index) {
+
 	if ((index < 0) || (index >= MAX_NUM_MODEL)) {
 		return;
 	}
 
 	ModelSrc.erase(ModelSrc.begin() + index);
 }
-void matching::removeMatchModel(int startIndex, int endIndex)
-{
+
+// remove multi model from source
+void geomaching::removeMatchModel(int startIndex, int endIndex) {
+
 	if (startIndex >= endIndex) {
 		return;
 	}
@@ -56,29 +72,32 @@ void matching::removeMatchModel(int startIndex, int endIndex)
 
 	ModelSrc.erase(ModelSrc.begin() + startIndex, ModelSrc.begin() + endIndex);
 }
-int matching::GetModelSrcSize(void)
-{
+
+// Get source model size
+int geomaching::GetModelSrcSize(void) {
 	return ModelSrc.size();
 }
 
-void matching::sourceStream(String path)
-{
+void geomaching::sourceStream(String path) {
 	imageSrc = imread(path);
 }
-void matching::sourceStream(String path, int pyrDownLevel)
-{
+
+void geomaching::sourceStream(String path, int pyrDownLevel) {
 	imageSrc = imread(path);
+
 	for (int downTime = 0; downTime < pyrDownLevel; downTime++) {
 		pyrDown(imageSrc, imageSrc,
 			Size(imageSrc.cols / 2, imageSrc.rows / 2));
 	}
 }
-void matching::Matching(void)
-{
+
+double  geomaching::Matching(void) {
+
 	if (imageSrc.empty()) {
-		return;
+		return 0;
 	}
 
+	// elapsed time counter
 	double startClock;
 
 	Mat imageGray;
@@ -94,115 +113,111 @@ void matching::Matching(void)
 	/// MATCHING START
 	startClock = clock();
 
-
 	cvtColor(imageSrc, imageGray, COLOR_RGB2GRAY);
 	threshold(imageGray, imageThreshold, 100, 160, THRESH_BINARY_INV);
-	//Canny(imageGray, imageThreshold, cannyThresh_1, cannyThresh_2,cannyKernelSize);
 	findContours(imageThreshold, srcContours, srcHierarchy,
 		cv::RETR_TREE, cv::CHAIN_APPROX_NONE);
-
-	// tiền xử lý source
-
-	// find valid contours
-	for (int conCounter = 0; conCounter < srcContours.size(); conCounter++) {
-		ObjectInfo tempObject;
-		int area = contourArea(srcContours[conCounter]);
-		for (int listCounter = 0; listCounter < ModelSrc.size(); listCounter++) {
-			int highThresh, lowThresh;
-			ModelSrc[listCounter].getThreshArea(lowThresh, highThresh);
-
-			if ((area >= lowThresh) && (area <= highThresh)) {
-				tempObject.modelCheckList.push_back(listCounter);
+	for (int contourcount = 0; contourcount < srcContours.size(); contourcount++)
+	{
+		int area = contourArea(srcContours[contourcount]);
+		ObjectInfo obj;
+		for (int count_model = 0; count_model < ModelSrc.size(); count_model++)
+		{
+			int low_area, high_area;
+			ModelSrc[count_model].getThreshArea(low_area, high_area);
+			if ((area >= low_area) && (area <= high_area))
+			{
+				obj.modelCheckList.push_back(count_model);
 			}
-		}// tìm trong src các contour nào đáp ứng yêu cầu về diện tích
-		// nếu trong có ít nhất 1 model đáp ứng thì thêm vào danh sách object
-		if (tempObject.modelCheckList.size() > 0) {
-			tempObject.conArea = area;
-			tempObject.conIndex = conCounter;
-			tempObject.conBoundingRect = boundingRect(srcContours[conCounter]);
-			tempObject.conMinRectArea = minAreaRect(srcContours[conCounter]);
-			Moments tempMoment = moments(srcContours[conCounter]);
-			tempObject.conCenter.x = tempMoment.m10 / tempMoment.m00;
-			tempObject.conCenter.y = tempMoment.m01 / tempMoment.m00;
-			objects.push_back(tempObject);
+		}
+		if (obj.modelCheckList.size() > 0)
+		{
+
+			obj.conIndex= contourcount;
+
+			// contours area;
+			obj.conArea= area;
+
+			// contours center
+			Moments tempMoment = moments(srcContours[contourcount]);
+			obj.conCenter.x= tempMoment.m10 / tempMoment.m00;
+			obj.conCenter.y = tempMoment.m01 / tempMoment.m00;
+			// contours bouding rectangle
+			obj.conBoundingRect = boundingRect(srcContours[contourcount]);
+			// contours min Rectange area
+			obj.conMinRectArea = minAreaRect(srcContours[contourcount]);
+			objects.push_back(obj);
 		}
 	}
 
 	vector<MatchedObjects> matchedList;
-	// duyệt danh sách object trên tính hướng pca của từng object
-	for (int pcaCounter = 0; pcaCounter < objects.size(); pcaCounter++) {
-		int conIdx = objects[pcaCounter].conIndex;
-		getPcaOrientation(srcContours[conIdx],
-			objects[pcaCounter].pcaAngle, objects[pcaCounter].pcaCenter);
 
+	for (int pca_counter = 0; pca_counter < objects.size(); pca_counter++)
+	{
+		int idx_pca = objects[pca_counter].conIndex;
+		getPcaOrientation(srcContours[idx_pca], objects[pca_counter].pcaAngle, objects[pca_counter].pcaCenter);
 		double lastMaxScores = 0.0;
 		bool matchedFound = false;
 		MatchedObjects tempMatched;
 
-		for (int modelCounter = 0; modelCounter < ModelSrc.size(); modelCounter++) {
-
-
-
-			getRotatedROI(imageSrc, ModelSrc[modelCounter], objects[pcaCounter], GetROI_MODE::ROI_POSITIVE);
-			matchedFound = matchingScores(objects[pcaCounter].rotPositive, ModelSrc[modelCounter], lastMaxScores);
-			//cout << lastMaxScores << endl;
+		for (int model_counter = 0; model_counter < ModelSrc.size(); model_counter++)
+		{
+			getRotatedROI(imageSrc, ModelSrc[model_counter],objects[pca_counter], GetROI_MODE::ROI_POSITIVE);
+			matchedFound = matchingScores(objects[pca_counter].rotPositive, ModelSrc[model_counter], lastMaxScores);
 			if (matchedFound) {
-				tempMatched.coordinates = objects[pcaCounter].pcaCenter;
-				tempMatched.angle = objects[pcaCounter].rotPositive.angle;
+				tempMatched.coordinates = objects[pca_counter].pcaCenter;
+				tempMatched.angle = objects[pca_counter].rotPositive.angle;
+				tempMatched.rect = objects[pca_counter].conBoundingRect;
 			}
 
-			getRotatedROI(imageSrc, ModelSrc[modelCounter], objects[pcaCounter], GetROI_MODE::ROI_NEGATIVE);
-			matchedFound = matchingScores(objects[pcaCounter].rotNegative, ModelSrc[modelCounter], lastMaxScores);
-			//cout << lastMaxScores << endl;
+			getRotatedROI(imageSrc, ModelSrc[model_counter], objects[pca_counter], GetROI_MODE::ROI_NEGATIVE);
+			matchedFound = matchingScores(objects[pca_counter].rotNegative, ModelSrc[model_counter], lastMaxScores);
 			if (matchedFound) {
-				tempMatched.coordinates = objects[pcaCounter].pcaCenter;
-				tempMatched.angle = objects[pcaCounter].rotNegative.angle;
+				tempMatched.coordinates = objects[pca_counter].pcaCenter;
+				tempMatched.angle = objects[pca_counter].rotPositive.angle;
+				tempMatched.rect = objects[pca_counter].conBoundingRect;
 			}
 
-			getRotatedROI(imageSrc, ModelSrc[modelCounter], objects[pcaCounter], GetROI_MODE::ROI_POSITIVE_REVERSE);
-			matchedFound = matchingScores(objects[pcaCounter].rotPositive_reverse, ModelSrc[modelCounter], lastMaxScores);
-			//cout << lastMaxScores << endl;
+			getRotatedROI(imageSrc, ModelSrc[model_counter], objects[pca_counter], GetROI_MODE::ROI_POSITIVE_REVERSE);
+			matchedFound = matchingScores(objects[pca_counter].rotPositive_reverse, ModelSrc[model_counter], lastMaxScores);
 			if (matchedFound) {
-				tempMatched.coordinates = objects[pcaCounter].pcaCenter;
-				tempMatched.angle = objects[pcaCounter].rotPositive_reverse.angle;
+				tempMatched.coordinates = objects[pca_counter].pcaCenter;
+				tempMatched.angle = objects[pca_counter].rotPositive.angle;
+				tempMatched.rect = objects[pca_counter].conBoundingRect;
 			}
 
-			getRotatedROI(imageSrc, ModelSrc[modelCounter], objects[pcaCounter], GetROI_MODE::ROI_NEGATIVE_REVERSE);
-			matchedFound = matchingScores(objects[pcaCounter].rotNegative_reverse, ModelSrc[modelCounter], lastMaxScores);
-			//cout << lastMaxScores << endl;
+			getRotatedROI(imageSrc, ModelSrc[model_counter], objects[pca_counter], GetROI_MODE::ROI_NEGATIVE_REVERSE);
+			matchedFound = matchingScores(objects[pca_counter].rotNegative_reverse, ModelSrc[model_counter], lastMaxScores);
 			if (matchedFound) {
-				tempMatched.coordinates = objects[pcaCounter].pcaCenter;
-				tempMatched.angle = objects[pcaCounter].rotNegative_reverse.angle;
+				tempMatched.coordinates = objects[pca_counter].pcaCenter;
+				tempMatched.angle = objects[pca_counter].rotPositive.angle;
+				tempMatched.rect = objects[pca_counter].conBoundingRect;
 			}
-
-			// debug
-			//imshow("Positive rotated", objects[pcaCounter].rotPositive.image);
-			//imshow("Negative rotated", objects[pcaCounter].rotNegative.image);
-			//imshow("Positive reverse rotated", objects[pcaCounter].rotPositive_reverse.image);
-			//imshow("Negative reverse rotated", objects[pcaCounter].rotNegative_reverse.image);
-			//waitKey(0);
-		}
-
+	}
 		if (lastMaxScores > ModelSrc[0].scoresMin) {
 			matchedList.push_back(tempMatched);
 		}
 	}
 
-
 	for (int i = 0; i < matchedList.size(); i++) {
 		circle(imageShow, matchedList[i].coordinates, 2, Scalar(255, 255, 0), 2);
+		rectangle(imageShow, matchedList[i].rect, Scalar(0, 255, 0), 1);
 		String textPut = to_string(matchedList[i].angle);
 		putText(imageShow, textPut, matchedList[i].coordinates, FONT_HERSHEY_COMPLEX, 1.0, Scalar(0, 255, 255), 2);
 	}
 
 	imshow("Image show", imageShow);
+
 	lastCycleTime = (clock() - startClock) / double(CLOCKS_PER_SEC);
 	lastCycleTime *= 1000;
 	cout << "elasped time: " << lastCycleTime << " ms" << endl;
+
+	return lastCycleTime;
 }
 
-void matching::getPcaOrientation(const vector<Point>& pts, double& angleOutput, Point2f& centerOutput)
-{
+// get pca orientation and pca center
+// return angle in degrees unit
+void geomaching::getPcaOrientation(const std::vector<Point>& pts, double& angleOutput, Point2f& centerOutput) {
 	//Construct a buffer used by the pca analysis
 	int sz = static_cast<int>(pts.size());
 	Mat data_pts = Mat(sz, 2, CV_64F);
@@ -229,7 +244,8 @@ void matching::getPcaOrientation(const vector<Point>& pts, double& angleOutput, 
 	angleOutput = angle * R2D;
 	centerOutput = cntr;
 }
-void matching::getRotatedROI(Mat& matSr, model& model, ObjectInfo& object, GetROI_MODE roiMode) {
+
+void geomaching::getRotatedROI(Mat& matSr, GeometricModel& model, ObjectInfo& object, GetROI_MODE roiMode) {
 	int iCols = matSr.cols;
 	int iRows = matSr.rows;
 	Mat rotationMatrix;
@@ -336,7 +352,7 @@ void matching::getRotatedROI(Mat& matSr, model& model, ObjectInfo& object, GetRO
 }
 
 
-void matching::getRotatedROI(Mat& matSrc, GetROI_MODE roiMode, model& model, ObjectInfo& object) {
+void geomaching::getRotatedROI(Mat& matSrc, GetROI_MODE roiMode, GeometricModel& model, ObjectInfo& object) {
 	// calculate top left and bottom right coordinates
 	Point2i topLeft = object.conBoundingRect.tl();
 	Point2i botRight = object.conBoundingRect.br();
@@ -413,7 +429,7 @@ void matching::getRotatedROI(Mat& matSrc, GetROI_MODE roiMode, model& model, Obj
 	// transform to vector
 }
 
-bool matching::matchingScores(RotatedObject& objectRotated, model& model, double& lastMaxScores) {
+bool geomaching::matchingScores(RotatedObject& objectRotated, GeometricModel& model, double& lastMaxScores) {
 	// add check pattern learn and image empty
 
 	bool matchingResult = false;
@@ -452,7 +468,7 @@ bool matching::matchingScores(RotatedObject& objectRotated, model& model, double
 			double partialSum = 0;
 			for (int count = 0; count < noOfCordinates; count++)
 			{
-				model::ModelPatternInfo tempPoint = model.patternInfo[count];
+				GeometricModel::ModelPatternInfo tempPoint = model.patternInfo[count];
 
 				int CoorX = (int)(colIdx + tempPoint.Offset.x);
 				int CoorY = (int)(rowIdx + tempPoint.Offset.y);
@@ -479,7 +495,7 @@ bool matching::matchingScores(RotatedObject& objectRotated, model& model, double
 
 				partialScore = partialSum / sumOfCoords;
 
-				double minBreakScores = min((model.scoresMin - 1) + normGreediness * sumOfCoords, normMinScore * sumOfCoords);
+				double minBreakScores = std::min((model.scoresMin - 1) + normGreediness * sumOfCoords, normMinScore * sumOfCoords);
 
 				if (partialScore < minBreakScores) {
 					break;
@@ -504,7 +520,7 @@ bool matching::matchingScores(RotatedObject& objectRotated, model& model, double
 	return false;
 }
 
-bool matching::matchingScores(Mat& inputImage, model& model, double& lastMaxScores) {
+bool geomaching::matchingScores(Mat& inputImage, GeometricModel& model, double& lastMaxScores) {
 	// add check pattern learn and image empty
 
 	bool matchingResult = false;
@@ -543,7 +559,7 @@ bool matching::matchingScores(Mat& inputImage, model& model, double& lastMaxScor
 			double partialSum = 0;
 			for (int count = 0; count < noOfCordinates; count++)
 			{
-				model::ModelPatternInfo tempPoint = model.patternInfo[count];
+				GeometricModel::ModelPatternInfo tempPoint = model.patternInfo[count];
 
 				int CoorX = (int)(colIdx + tempPoint.Offset.x);
 				int CoorY = (int)(rowIdx + tempPoint.Offset.y);
@@ -570,7 +586,7 @@ bool matching::matchingScores(Mat& inputImage, model& model, double& lastMaxScor
 
 				partialScore = partialSum / sumOfCoords;
 
-				double minBreakScores = min((model.scoresMin - 1) + normGreediness * sumOfCoords, normMinScore * sumOfCoords);
+				double minBreakScores = std::min((model.scoresMin - 1) + normGreediness * sumOfCoords, normMinScore * sumOfCoords);
 
 				if (partialScore < minBreakScores) {
 					break;
@@ -595,9 +611,7 @@ bool matching::matchingScores(Mat& inputImage, model& model, double& lastMaxScor
 	return false;
 }
 
-
-
-Mat matching::cropImageWithBorderOffset(Mat sourceImage, Rect boxBounding, int border) {
+Mat geomaching::cropImageWithBorderOffset(Mat sourceImage, Rect boxBounding, int border) {
 
 	Mat outputMat;
 	int minOffset_X, maxOffset_X;

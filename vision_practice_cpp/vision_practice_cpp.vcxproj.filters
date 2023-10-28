@@ -18,18 +18,18 @@
     <ClCompile Include="vision_practice_cpp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="model.cpp">
+    <ClCompile Include="GeometricModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="matching.cpp">
+    <ClCompile Include="geomaching.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="model.h">
+    <ClInclude Include="GeometricModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="matching.h">
+    <ClInclude Include="geomaching.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
