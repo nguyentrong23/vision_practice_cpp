@@ -44,7 +44,7 @@ public:
 	bool readImage(String modelPath, int pyrDownLevel);
 	bool learnPattern(bool bShowImage);
 	void getPcaOrientation(const vector<Point>& pts, double& angleOutput, Point2f& centerOutput);
-	void showInfoImage(String windowName);
+	void showInfoImage(String windowName, Point2f center_of_temp);
 	void drawPcaAxis(Mat& img, Point p, Point q, Scalar colour, const float scale = 0.2);
 
 	bool imageEmpty(void);
@@ -71,6 +71,7 @@ public:
 	Mat imageOriginal;
 	// distance of center pattern to center pca
 	Point2f cPattern2cPca;
+
 private:
 	//// image of model in grayscale
 	//Mat imageGray;

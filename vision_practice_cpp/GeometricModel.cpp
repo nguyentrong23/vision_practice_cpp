@@ -107,7 +107,7 @@ bool GeometricModel::learnPattern(bool bShowImage) {
 		{
 			ModelPatternInfo tempData;
 			double mag;
-			tempData.Coordinates = contours[contourIdx][pointInx];
+			tempData.Coordinates = contours[contourIdx][pointInx];/// contours thứ mấy và điểm thứ mấy
 			tempData.Derivative = Point2d(gx.at<double>(tempData.Coordinates)
 				, gy.at<double>(tempData.Coordinates));
 			tempData.Angle = angle.at<double>(tempData.Coordinates);
@@ -147,8 +147,9 @@ bool GeometricModel::learnPattern(bool bShowImage) {
 	// khoảng cách giữa tâm của template và tâm của pca
 	cPattern2cPca = templateCenterPoint - centerPCA;
 
+
 	if (bShowImage) {
-		showInfoImage(nameOfModel);
+		showInfoImage(nameOfModel,templateCenterPoint);
 	}
 	bIsGeometricLearn = true;
 	return true;
@@ -194,7 +195,7 @@ bool GeometricModel::geometricLearned(void) {
 	return bIsGeometricLearn;
 }
 
-void GeometricModel::showInfoImage(String windowName) {
+void GeometricModel::showInfoImage(String windowName, Point2f center_of_temp) {
 	if (windowName.empty()) {
 		return;
 	}
@@ -208,6 +209,9 @@ void GeometricModel::showInfoImage(String windowName) {
 
 	// draw pca center and direction
 	circle(showImg, centerPCA, 3, Scalar(255, 0, 255), 2);
+	circle(showImg, center_of_temp, 3, Scalar(0, 255, 255), 2);
+
+
 	drawPcaAxis(showImg, centerPCA, point1pca, Scalar(0, 255, 0));
 	drawPcaAxis(showImg, centerPCA, point2pca, Scalar(255, 255, 0));
 

@@ -1,4 +1,4 @@
-#include "geomaching.h"
+﻿#include "geomaching.h"
 
 geomaching::geomaching()
 {
@@ -142,6 +142,7 @@ double  geomaching::Matching(void) {
 			Moments tempMoment = moments(srcContours[contourcount]);
 			obj.conCenter.x= tempMoment.m10 / tempMoment.m00;
 			obj.conCenter.y = tempMoment.m01 / tempMoment.m00;
+
 			// contours bouding rectangle
 			obj.conBoundingRect = boundingRect(srcContours[contourcount]);
 			// contours min Rectange area
@@ -160,6 +161,9 @@ double  geomaching::Matching(void) {
 		bool matchedFound = false;
 		MatchedObjects tempMatched;
 
+
+
+		// thêm phần xét ngưỡng để giảm thời gian chạy
 		for (int model_counter = 0; model_counter < ModelSrc.size(); model_counter++)
 		{
 			getRotatedROI(imageSrc, ModelSrc[model_counter],objects[pca_counter], GetROI_MODE::ROI_POSITIVE);
@@ -211,7 +215,6 @@ double  geomaching::Matching(void) {
 	lastCycleTime = (clock() - startClock) / double(CLOCKS_PER_SEC);
 	lastCycleTime *= 1000;
 	cout << "elasped time: " << lastCycleTime << " ms" << endl;
-
 	return lastCycleTime;
 }
 
@@ -245,13 +248,17 @@ void geomaching::getPcaOrientation(const std::vector<Point>& pts, double& angleO
 	centerOutput = cntr;
 }
 
-void geomaching::getRotatedROI(Mat& matSr, GeometricModel& model, ObjectInfo& object, GetROI_MODE roiMode) {
+
+
+
+
+void geomaching::getRotatedROI(Mat& matSr, GeometricModel& model, ObjectInfo& object, GetROI_MODE roiMode) {/////////////////////////////////////////
 	int iCols = matSr.cols;
 	int iRows = matSr.rows;
 	Mat rotationMatrix;
 	double rotateAngle = 0.0;
 	Point2f centerOfObject = object.pcaCenter;
-	switch (roiMode)
+	switch (roiMode)  /// xác định góc tạo bởi model và object
 	{
 	case GetROI_MODE::ROI_POSITIVE:
 		rotateAngle = object.pcaAngle + model.getPcaAngle();
@@ -319,8 +326,6 @@ void geomaching::getRotatedROI(Mat& matSr, GeometricModel& model, ObjectInfo& ob
 	transformCenterPoint.push_back((Point2f)object.pcaCenter);
 	transform(transformCenterPoint, transformCenterPoint, rotationMatrix);
 	Point2f topleft = BoundingRect.tl();
-	/*Point2f pcaCenterPoint = transformCenterPoint[0] - topleft;*/
-	/*cout << BoundingRect.size() << " - " << pcaCenterPoint << endl;*/
 
 	switch (roiMode)
 	{
@@ -328,108 +333,104 @@ void geomaching::getRotatedROI(Mat& matSr, GeometricModel& model, ObjectInfo& ob
 		object.rotPositive.image = cropImageWithBorderOffset(object.rotPositive.image, BoundingRect, 2);
 		object.rotPositive.center = transformCenterPoint[0] - topleft;
 		object.rotPositive.center += model.cPattern2cPca;
-		//circle(object.rotPositive.image, object.rotPositive.center, 2, Scalar(255, 255, 0), 2);
 		break;
 	case GetROI_MODE::ROI_NEGATIVE:
 		object.rotNegative.image = cropImageWithBorderOffset(object.rotNegative.image, BoundingRect, 2);
 		object.rotNegative.center = transformCenterPoint[0] - topleft;
 		object.rotNegative.center += model.cPattern2cPca;
-		//circle(object.rotNegative.image, object.rotNegative.center, 2, Scalar(255, 255, 0), 2);
 		break;
 	case GetROI_MODE::ROI_POSITIVE_REVERSE:
 		object.rotPositive_reverse.image = cropImageWithBorderOffset(object.rotPositive_reverse.image, BoundingRect, 2);
 		object.rotPositive_reverse.center = transformCenterPoint[0] - topleft;
 		object.rotPositive_reverse.center += model.cPattern2cPca;
-		//circle(object.rotPositive_reverse.image, object.rotPositive_reverse.center, 2, Scalar(255, 255, 0), 2);
 		break;
 	case GetROI_MODE::ROI_NEGATIVE_REVERSE:
 		object.rotNegative_reverse.image = cropImageWithBorderOffset(object.rotNegative_reverse.image, BoundingRect, 2);
 		object.rotNegative_reverse.center = transformCenterPoint[0] - topleft;
 		object.rotNegative_reverse.center += model.cPattern2cPca;
-		//circle(object.rotNegative_reverse.image, object.rotNegative_reverse.center, 2, Scalar(255, 255, 0), 2);
 		break;
 	}
 }
 
 
 void geomaching::getRotatedROI(Mat& matSrc, GetROI_MODE roiMode, GeometricModel& model, ObjectInfo& object) {
-	// calculate top left and bottom right coordinates
-	Point2i topLeft = object.conBoundingRect.tl();
-	Point2i botRight = object.conBoundingRect.br();
-	topLeft.x -= OBJECT_ROI_BORDER_OFFSET;
-	topLeft.y -= OBJECT_ROI_BORDER_OFFSET;
-	botRight.x += OBJECT_ROI_BORDER_OFFSET;
-	botRight.y += OBJECT_ROI_BORDER_OFFSET;
-	// crop image
-	Mat cropImg = matSrc(Range(topLeft.y, botRight.y), Range(topLeft.x, botRight.x));
-	// find center of object after crop
-	Point2f centerOfObject;
-	centerOfObject.x = object.pcaCenter.x - topLeft.x;
-	centerOfObject.y = object.pcaCenter.y - topLeft.y;
-
-	int iCols = cropImg.cols;
-	int iRows = cropImg.rows;
-	Mat rotationMatrix;
-	double rotateAngle = 0.0;
-
-	switch (roiMode)
-	{
-	case GetROI_MODE::ROI_POSITIVE:
-		rotateAngle = object.pcaAngle + model.getPcaAngle();
-		rotationMatrix = getRotationMatrix2D(centerOfObject, rotateAngle, 1.0);
-		break;
-	case GetROI_MODE::ROI_NEGATIVE:
-		rotateAngle = object.pcaAngle - model.getPcaAngle();
-		rotationMatrix = getRotationMatrix2D(centerOfObject, rotateAngle, 1.0);
-		break;
-	case GetROI_MODE::ROI_POSITIVE_REVERSE:
-		rotateAngle = object.pcaAngle + model.getPcaAngle() + 180.0;
-		rotationMatrix = getRotationMatrix2D(centerOfObject, rotateAngle, 1.0);
-		break;
-	case GetROI_MODE::ROI_NEGATIVE_REVERSE:
-		rotateAngle = object.pcaAngle - model.getPcaAngle() + 180.0;
-		rotationMatrix = getRotationMatrix2D(centerOfObject, rotateAngle, 1.0);
-		break;
-	}
-
-	// calculate for resize matrix
-	double xVar[4] = { rotationMatrix.at<double>(0, 0),
-						rotationMatrix.at<double>(0, 1),
-						rotationMatrix.at<double>(1, 0),
-						rotationMatrix.at<double>(1, 1) };
-
-	// find image rotated rectangle verticies
-	vector<Point> rotatedRect;
-	rotatedRect.push_back(Point2i(0, 0));
-	rotatedRect.push_back(Point2i(xVar[0] * iCols, xVar[2] * iCols));
-	rotatedRect.push_back(Point2i((xVar[0] * iCols + xVar[1] * iRows), (xVar[2] * iCols + xVar[3] * iRows)));
-	rotatedRect.push_back(Point2i(xVar[1] * iRows, xVar[3] * iRows));
-	Rect BoundingRect = boundingRect(rotatedRect);
-
-	// resize matrix to wrap all image
-	rotationMatrix.at<double>(0, 2) = -BoundingRect.x;
-	rotationMatrix.at<double>(1, 2) = -BoundingRect.y;
-	// rotated image
-	switch (roiMode)
-	{
-	case GetROI_MODE::ROI_POSITIVE:
-		warpAffine(cropImg, object.rotPositive.image, rotationMatrix, Size(BoundingRect.width, BoundingRect.height));
-		break;
-	case GetROI_MODE::ROI_NEGATIVE:
-		warpAffine(cropImg, object.rotNegative.image, rotationMatrix, Size(BoundingRect.width, BoundingRect.height));
-		break;
-	case GetROI_MODE::ROI_POSITIVE_REVERSE:
-		warpAffine(cropImg, object.rotPositive_reverse.image, rotationMatrix, Size(BoundingRect.width, BoundingRect.height));
-		break;
-	case GetROI_MODE::ROI_NEGATIVE_REVERSE:
-		warpAffine(cropImg, object.rotNegative_reverse.image, rotationMatrix, Size(BoundingRect.width, BoundingRect.height));
-		break;
-	}
-
-	// transform to vector
+//	// calculate top left and bottom right coordinates
+//	Point2i topLeft = object.conBoundingRect.tl();
+//	Point2i botRight = object.conBoundingRect.br();
+//	topLeft.x -= OBJECT_ROI_BORDER_OFFSET;
+//	topLeft.y -= OBJECT_ROI_BORDER_OFFSET;
+//	botRight.x += OBJECT_ROI_BORDER_OFFSET;
+//	botRight.y += OBJECT_ROI_BORDER_OFFSET;
+//	// crop image
+//	Mat cropImg = matSrc(Range(topLeft.y, botRight.y), Range(topLeft.x, botRight.x));
+//	// find center of object after crop
+//	Point2f centerOfObject;
+//	centerOfObject.x = object.pcaCenter.x - topLeft.x;
+//	centerOfObject.y = object.pcaCenter.y - topLeft.y;
+//
+//	int iCols = cropImg.cols;
+//	int iRows = cropImg.rows;
+//	Mat rotationMatrix;
+//	double rotateAngle = 0.0;
+//
+//	switch (roiMode)
+//	{
+//	case GetROI_MODE::ROI_POSITIVE:
+//		rotateAngle = object.pcaAngle + model.getPcaAngle();
+//		rotationMatrix = getRotationMatrix2D(centerOfObject, rotateAngle, 1.0);
+//		break;
+//	case GetROI_MODE::ROI_NEGATIVE:
+//		rotateAngle = object.pcaAngle - model.getPcaAngle();
+//		rotationMatrix = getRotationMatrix2D(centerOfObject, rotateAngle, 1.0);
+//		break;
+//	case GetROI_MODE::ROI_POSITIVE_REVERSE:
+//		rotateAngle = object.pcaAngle + model.getPcaAngle() + 180.0;
+//		rotationMatrix = getRotationMatrix2D(centerOfObject, rotateAngle, 1.0);
+//		break;
+//	case GetROI_MODE::ROI_NEGATIVE_REVERSE:
+//		rotateAngle = object.pcaAngle - model.getPcaAngle() + 180.0;
+//		rotationMatrix = getRotationMatrix2D(centerOfObject, rotateAngle, 1.0);
+//		break;
+//	}
+//
+//	// calculate for resize matrix
+//	double xVar[4] = { rotationMatrix.at<double>(0, 0),
+//						rotationMatrix.at<double>(0, 1),
+//						rotationMatrix.at<double>(1, 0),
+//						rotationMatrix.at<double>(1, 1) };
+//
+//	// find image rotated rectangle verticies
+//	vector<Point> rotatedRect;
+//	rotatedRect.push_back(Point2i(0, 0));
+//	rotatedRect.push_back(Point2i(xVar[0] * iCols, xVar[2] * iCols));
+//	rotatedRect.push_back(Point2i((xVar[0] * iCols + xVar[1] * iRows), (xVar[2] * iCols + xVar[3] * iRows)));
+//	rotatedRect.push_back(Point2i(xVar[1] * iRows, xVar[3] * iRows));
+//	Rect BoundingRect = boundingRect(rotatedRect);
+//
+//	// resize matrix to wrap all image
+//	rotationMatrix.at<double>(0, 2) = -BoundingRect.x;
+//	rotationMatrix.at<double>(1, 2) = -BoundingRect.y;
+//	// rotated image
+//	switch (roiMode)
+//	{
+//	case GetROI_MODE::ROI_POSITIVE:
+//		warpAffine(cropImg, object.rotPositive.image, rotationMatrix, Size(BoundingRect.width, BoundingRect.height));
+//		break;
+//	case GetROI_MODE::ROI_NEGATIVE:
+//		warpAffine(cropImg, object.rotNegative.image, rotationMatrix, Size(BoundingRect.width, BoundingRect.height));
+//		break;
+//	case GetROI_MODE::ROI_POSITIVE_REVERSE:
+//		warpAffine(cropImg, object.rotPositive_reverse.image, rotationMatrix, Size(BoundingRect.width, BoundingRect.height));
+//		break;
+//	case GetROI_MODE::ROI_NEGATIVE_REVERSE:
+//		warpAffine(cropImg, object.rotNegative_reverse.image, rotationMatrix, Size(BoundingRect.width, BoundingRect.height));
+//		break;
+//	}
+//
+//	// transform to vector
 }
 
-bool geomaching::matchingScores(RotatedObject& objectRotated, GeometricModel& model, double& lastMaxScores) {
+bool geomaching::matchingScores(RotatedObject& objectRotated, GeometricModel& model, double& lastMaxScores) {  /////////////////////////////////////////////////
 	// add check pattern learn and image empty
 
 	bool matchingResult = false;
@@ -446,18 +447,20 @@ bool geomaching::matchingScores(RotatedObject& objectRotated, GeometricModel& mo
 
 	cartToPolar(gx, gy, magnitude, angle);
 
-	// ncc match search
+	// lấy số lượng pixel trong template
 	long noOfCordinates = model.patternInfo.size();
+
+
 	// normalized min score
-	double normMinScore = model.scoresMin / noOfCordinates;
-	double normGreediness = ((1 - model.greediness * model.scoresMin) / (1 - model.greediness)) / noOfCordinates;
+	double normMinScore = model.scoresMin / noOfCordinates;   // model.scoresMin = 0.9 - điểm thấp nhất để nhận dạng, chia đều cho tất cả các pixel để đánh giá phần trăm tương thích
+	double normGreediness = ((1 - model.greediness * model.scoresMin) / (1 - model.greediness)) / noOfCordinates;// model.greediness hiện tại bằng 0
 	double partialScore = 0;
 	double resultScore = 0;
 
 	int checkCounter = 0;
 
-	int startRowIdx = objectRotated.center.y - 20;
-	int endRowIdx = objectRotated.center.y + 20;
+	int startRowIdx = objectRotated.center.y - 5;   // tinh chỉnh sao cho phù hợp với template
+	int endRowIdx = objectRotated.center.y +  5;
 	int startColIdx = objectRotated.center.x - 20;
 	int endColIdx = objectRotated.center.x + 20;
 
@@ -473,6 +476,8 @@ bool geomaching::matchingScores(RotatedObject& objectRotated, GeometricModel& mo
 				int CoorX = (int)(colIdx + tempPoint.Offset.x);
 				int CoorY = (int)(rowIdx + tempPoint.Offset.y);
 
+
+				// gx và gy tại <count> của temlate
 				double iTx = tempPoint.Derivative.x;
 				double iTy = tempPoint.Derivative.y;
 
@@ -481,32 +486,38 @@ bool geomaching::matchingScores(RotatedObject& objectRotated, GeometricModel& mo
 					continue;
 				}
 
+
+				// gx và gy tại <CoorY, CoorX>
 				double iSx = gx.at<double>(CoorY, CoorX);
 				double iSy = gy.at<double>(CoorY, CoorX);
 
+				// nếu cả 2 bên đều khác 0
 				if ((iSx != 0 || iSy != 0) && (iTx != 0 || iTy != 0))
 				{
-					double mag = magnitude.at<double>(CoorY, CoorX);
+					double mag = magnitude.at<double>(CoorY, CoorX); // mag của source tại <CoorY, CoorX>
 					double matGradMag = (mag == 0) ? 0 : 1 / mag;
-					partialSum += ((iSx * iTx) + (iSy * iTy)) * (tempPoint.Magnitude * matGradMag);
+					partialSum += ((iSx * iTx) + (iSy * iTy)) * (tempPoint.Magnitude * matGradMag);   // tính giá trị cộng dồn vào partialSum    
 				}
 
+				// tính trung bình score tại count hiện tại
 				int sumOfCoords = count + 1;
 
 				partialScore = partialSum / sumOfCoords;
 
-				double minBreakScores = std::min((model.scoresMin - 1) + normGreediness * sumOfCoords, normMinScore * sumOfCoords);
+
+
+				double minBreakScores = min((model.scoresMin - 1) + normGreediness * sumOfCoords, normMinScore * sumOfCoords);
 
 				if (partialScore < minBreakScores) {
 					break;
+				}
 
-					if (partialScore < lastMaxScores) {
-						break;
-					}
+				if (partialScore < lastMaxScores) {
+				break;
 				}
 			}
 
-			if (partialScore > resultScore) {
+			if (partialScore > resultScore) { /////////////////////
 				resultScore = partialScore;
 			}
 		}
@@ -521,92 +532,92 @@ bool geomaching::matchingScores(RotatedObject& objectRotated, GeometricModel& mo
 }
 
 bool geomaching::matchingScores(Mat& inputImage, GeometricModel& model, double& lastMaxScores) {
-	// add check pattern learn and image empty
+	//// add check pattern learn and image empty
 
-	bool matchingResult = false;
-	Mat imgDest;
-	Mat gx;
-	Mat gy;
-	Mat magnitude;
-	Mat angle;
+	//bool matchingResult = false;
+	//Mat imgDest;
+	//Mat gx;
+	//Mat gy;
+	//Mat magnitude;
+	//Mat angle;
 
-	cvtColor(inputImage, imgDest, COLOR_RGB2GRAY);
+	//cvtColor(inputImage, imgDest, COLOR_RGB2GRAY);
 
-	Sobel(imgDest, gx, CV_64F, 1, 0, 3);
-	Sobel(imgDest, gy, CV_64F, 0, 1, 3);
+	//Sobel(imgDest, gx, CV_64F, 1, 0, 3);
+	//Sobel(imgDest, gy, CV_64F, 0, 1, 3);
 
-	cartToPolar(gx, gy, magnitude, angle);
+	//cartToPolar(gx, gy, magnitude, angle);
 
-	// ncc match search
-	long noOfCordinates = model.patternInfo.size();
-	// normalized min score
-	double normMinScore = model.scoresMin / noOfCordinates;
-	double normGreediness = ((1 - model.greediness * model.scoresMin) / (1 - model.greediness)) / noOfCordinates;
-	double partialScore = 0;
-	double resultScore = 0;
+	//// ncc match search
+	//long noOfCordinates = model.patternInfo.size();
+	//// normalized min score
+	//double normMinScore = model.scoresMin / noOfCordinates;
+	//double normGreediness = ((1 - model.greediness * model.scoresMin) / (1 - model.greediness)) / noOfCordinates;
+	//double partialScore = 0;
+	//double resultScore = 0;
 
-	int checkCounter = 0;
+	//int checkCounter = 0;
 
-	int startRowIdx = (inputImage.rows / 2) - 50;
-	int endRowIdx = (inputImage.rows / 2) + 50;
-	int startColIdx = (inputImage.rows / 2) - 50;
-	int endColIdx = (inputImage.rows / 2) + 50;
+	//int startRowIdx = (inputImage.rows / 2) - 50;
+	//int endRowIdx = (inputImage.rows / 2) + 50;
+	//int startColIdx = (inputImage.rows / 2) - 50;
+	//int endColIdx = (inputImage.rows / 2) + 50;
 
-	for (int rowIdx = startRowIdx; rowIdx < endRowIdx; rowIdx++)
-	{
-		for (int colIdx = startColIdx; colIdx < endColIdx; colIdx++)
-		{
-			double partialSum = 0;
-			for (int count = 0; count < noOfCordinates; count++)
-			{
-				GeometricModel::ModelPatternInfo tempPoint = model.patternInfo[count];
+	//for (int rowIdx = startRowIdx; rowIdx < endRowIdx; rowIdx++)
+	//{
+	//	for (int colIdx = startColIdx; colIdx < endColIdx; colIdx++)
+	//	{
+	//		double partialSum = 0;
+	//		for (int count = 0; count < noOfCordinates; count++)
+	//		{
+	//			GeometricModel::ModelPatternInfo tempPoint = model.patternInfo[count];
 
-				int CoorX = (int)(colIdx + tempPoint.Offset.x);
-				int CoorY = (int)(rowIdx + tempPoint.Offset.y);
+	//			int CoorX = (int)(colIdx + tempPoint.Offset.x);
+	//			int CoorY = (int)(rowIdx + tempPoint.Offset.y);
 
-				double iTx = tempPoint.Derivative.x;
-				double iTy = tempPoint.Derivative.y;
+	//			double iTx = tempPoint.Derivative.x;
+	//			double iTy = tempPoint.Derivative.y;
 
-				// ignore invalid pixel
-				if (CoorX < 0 || CoorY < 0 || CoorY >(imgDest.rows - 1) || CoorX >(imgDest.cols - 1)) {
-					continue;
-				}
+	//			// ignore invalid pixel
+	//			if (CoorX < 0 || CoorY < 0 || CoorY >(imgDest.rows - 1) || CoorX >(imgDest.cols - 1)) {
+	//				continue;
+	//			}
 
-				double iSx = gx.at<double>(CoorY, CoorX);
-				double iSy = gy.at<double>(CoorY, CoorX);
+	//			double iSx = gx.at<double>(CoorY, CoorX);
+	//			double iSy = gy.at<double>(CoorY, CoorX);
 
-				if ((iSx != 0 || iSy != 0) && (iTx != 0 || iTy != 0))
-				{
-					double mag = magnitude.at<double>(CoorY, CoorX);
-					double matGradMag = (mag == 0) ? 0 : 1 / mag;
-					partialSum += ((iSx * iTx) + (iSy * iTy)) * (tempPoint.Magnitude * matGradMag);
-				}
+	//			if ((iSx != 0 || iSy != 0) && (iTx != 0 || iTy != 0))
+	//			{
+	//				double mag = magnitude.at<double>(CoorY, CoorX);
+	//				double matGradMag = (mag == 0) ? 0 : 1 / mag;
+	//				partialSum += ((iSx * iTx) + (iSy * iTy)) * (tempPoint.Magnitude * matGradMag);
+	//			}
 
-				int sumOfCoords = count + 1;
+	//			int sumOfCoords = count + 1;
 
-				partialScore = partialSum / sumOfCoords;
+	//			partialScore = partialSum / sumOfCoords;
 
-				double minBreakScores = std::min((model.scoresMin - 1) + normGreediness * sumOfCoords, normMinScore * sumOfCoords);
+	//			double minBreakScores = std::min((model.scoresMin - 1) + normGreediness * sumOfCoords, normMinScore * sumOfCoords);
 
-				if (partialScore < minBreakScores) {
-					break;
+	//			if (partialScore < minBreakScores) {
+	//				break;
 
-					if (partialScore < lastMaxScores) {
-						break;
-					}
-				}
-			}
+	//				if (partialScore < lastMaxScores) {
+	//					break;
+	//				}
+	//			}
+	//		}
 
-			if (partialScore > resultScore) {
-				resultScore = partialScore;
-			}
-		}
-	}
+	//		if (partialScore > resultScore) {
+	//			resultScore = partialScore;
+	//		}
+	//	}
+	//}
 
-	if (resultScore > lastMaxScores) {
-		lastMaxScores = resultScore;
-		return true;
-	}
+	//if (resultScore > lastMaxScores) {
+	//	lastMaxScores = resultScore;
+	//	return true;
+	//}
 
 	return false;
 }
