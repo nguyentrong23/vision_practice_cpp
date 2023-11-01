@@ -146,12 +146,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="geomaching.cpp" />
+    <ClCompile Include="GeoMatch.cpp" />
     <ClCompile Include="GeometricModel.cpp" />
+    <ClCompile Include="GeoModel.cpp" />
     <ClCompile Include="vision_practice_cpp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="geomaching.h" />
+    <ClInclude Include="GeoMatch.h" />
     <ClInclude Include="GeometricModel.h" />
+    <ClInclude Include="GeoModel.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

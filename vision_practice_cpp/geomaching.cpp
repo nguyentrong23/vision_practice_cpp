@@ -111,7 +111,7 @@ double  geomaching::Matching(void) {
 	imageSrc.copyTo(imageShow);
 
 	/// MATCHING START
-	startClock = clock();
+
 
 	cvtColor(imageSrc, imageGray, COLOR_RGB2GRAY);
 	threshold(imageGray, imageThreshold, 100, 160, THRESH_BINARY_INV);
@@ -152,9 +152,10 @@ double  geomaching::Matching(void) {
 	}
 
 	vector<MatchedObjects> matchedList;
-
+	startClock = clock();
 	for (int pca_counter = 0; pca_counter < objects.size(); pca_counter++)
 	{
+		
 		int idx_pca = objects[pca_counter].conIndex;
 		getPcaOrientation(srcContours[idx_pca], objects[pca_counter].pcaAngle, objects[pca_counter].pcaCenter);
 		double lastMaxScores = 0.0;
@@ -162,45 +163,75 @@ double  geomaching::Matching(void) {
 		MatchedObjects tempMatched;
 
 
-
+		
+		double time = 0;
 		// thêm phần xét ngưỡng để giảm thời gian chạy
 		for (int model_counter = 0; model_counter < ModelSrc.size(); model_counter++)
 		{
+			double startClock1 = clock();
 			getRotatedROI(imageSrc, ModelSrc[model_counter],objects[pca_counter], GetROI_MODE::ROI_POSITIVE);
+			double  CycleTime1 = (clock() - startClock1) / double(CLOCKS_PER_SEC);
+			time = time + CycleTime1;
 			matchedFound = matchingScores(objects[pca_counter].rotPositive, ModelSrc[model_counter], lastMaxScores);
 			if (matchedFound) {
 				tempMatched.coordinates = objects[pca_counter].pcaCenter;
 				tempMatched.angle = objects[pca_counter].rotPositive.angle;
 				tempMatched.rect = objects[pca_counter].conBoundingRect;
 			}
-
+			if (lastMaxScores > ModelSrc[0].scoresMin) {
+				matchedList.push_back(tempMatched);
+				continue;
+			}
+			double startClock2 = clock();
 			getRotatedROI(imageSrc, ModelSrc[model_counter], objects[pca_counter], GetROI_MODE::ROI_NEGATIVE);
+			double  CycleTime2 = (clock() - startClock2) / double(CLOCKS_PER_SEC);
+			time = time + CycleTime2;
 			matchedFound = matchingScores(objects[pca_counter].rotNegative, ModelSrc[model_counter], lastMaxScores);
 			if (matchedFound) {
 				tempMatched.coordinates = objects[pca_counter].pcaCenter;
 				tempMatched.angle = objects[pca_counter].rotPositive.angle;
 				tempMatched.rect = objects[pca_counter].conBoundingRect;
 			}
+			if (lastMaxScores > ModelSrc[0].scoresMin) {
+				matchedList.push_back(tempMatched);
+				continue;
+			}
 
+			double startClock3 = clock();
 			getRotatedROI(imageSrc, ModelSrc[model_counter], objects[pca_counter], GetROI_MODE::ROI_POSITIVE_REVERSE);
+			double  CycleTime3 = (clock() - startClock3) / double(CLOCKS_PER_SEC);
+			time = time + CycleTime3;
 			matchedFound = matchingScores(objects[pca_counter].rotPositive_reverse, ModelSrc[model_counter], lastMaxScores);
 			if (matchedFound) {
 				tempMatched.coordinates = objects[pca_counter].pcaCenter;
 				tempMatched.angle = objects[pca_counter].rotPositive.angle;
 				tempMatched.rect = objects[pca_counter].conBoundingRect;
 			}
+			if (lastMaxScores > ModelSrc[0].scoresMin) {
+				matchedList.push_back(tempMatched);
+				continue;
+			}
 
+			double startClock4 = clock();
 			getRotatedROI(imageSrc, ModelSrc[model_counter], objects[pca_counter], GetROI_MODE::ROI_NEGATIVE_REVERSE);
+			double  CycleTime4 = (clock() - startClock4) / double(CLOCKS_PER_SEC);
+			time = time + CycleTime4;
 			matchedFound = matchingScores(objects[pca_counter].rotNegative_reverse, ModelSrc[model_counter], lastMaxScores);
 			if (matchedFound) {
 				tempMatched.coordinates = objects[pca_counter].pcaCenter;
 				tempMatched.angle = objects[pca_counter].rotPositive.angle;
 				tempMatched.rect = objects[pca_counter].conBoundingRect;
 			}
-	}
-		if (lastMaxScores > ModelSrc[0].scoresMin) {
-			matchedList.push_back(tempMatched);
-		}
+
+			if (lastMaxScores > ModelSrc[0].scoresMin) {
+				matchedList.push_back(tempMatched);
+			}
+	}	
+		time *= 1000;
+		cout << "rotate time :"<< time  << " ms" << endl;
+		lastCycleTime = (clock() - startClock) / double(CLOCKS_PER_SEC);
+		lastCycleTime *= 1000;
+		cout << "detect time "<< pca_counter <<" : " << lastCycleTime << " ms" << endl;
 	}
 
 	for (int i = 0; i < matchedList.size(); i++) {
@@ -252,12 +283,13 @@ void geomaching::getPcaOrientation(const std::vector<Point>& pts, double& angleO
 
 
 
-void geomaching::getRotatedROI(Mat& matSr, GeometricModel& model, ObjectInfo& object, GetROI_MODE roiMode) {/////////////////////////////////////////
+void geomaching::getRotatedROI(Mat& matSr, GeometricModel& model, ObjectInfo& object, GetROI_MODE roiMode) {
 	int iCols = matSr.cols;
 	int iRows = matSr.rows;
 	Mat rotationMatrix;
 	double rotateAngle = 0.0;
 	Point2f centerOfObject = object.pcaCenter;
+	
 	switch (roiMode)  /// xác định góc tạo bởi model và object
 	{
 	case GetROI_MODE::ROI_POSITIVE:
@@ -300,6 +332,8 @@ void geomaching::getRotatedROI(Mat& matSr, GeometricModel& model, ObjectInfo& ob
 	rotationMatrix.at<double>(0, 2) = -BoundingRect.x;
 	rotationMatrix.at<double>(1, 2) = -BoundingRect.y;
 	// rotated image
+
+	/*double startClock = clock();*/
 	switch (roiMode)
 	{
 	case GetROI_MODE::ROI_POSITIVE:
@@ -315,6 +349,10 @@ void geomaching::getRotatedROI(Mat& matSr, GeometricModel& model, ObjectInfo& ob
 		warpAffine(matSr, object.rotNegative_reverse.image, rotationMatrix, Size(BoundingRect.width, BoundingRect.height));
 		break;
 	}
+
+	//lastCycleTime = (clock() - startClock) / double(CLOCKS_PER_SEC);
+	//lastCycleTime *= 1000;
+	//cout << "xoay time  : " << lastCycleTime << " ms" << endl;
 
 	// transform vector
 	vector<Point2f> transformBoundingBox;
@@ -350,6 +388,8 @@ void geomaching::getRotatedROI(Mat& matSr, GeometricModel& model, ObjectInfo& ob
 		object.rotNegative_reverse.center += model.cPattern2cPca;
 		break;
 	}
+
+
 }
 
 
@@ -459,8 +499,8 @@ bool geomaching::matchingScores(RotatedObject& objectRotated, GeometricModel& mo
 
 	int checkCounter = 0;
 
-	int startRowIdx = objectRotated.center.y - 5;   // tinh chỉnh sao cho phù hợp với template
-	int endRowIdx = objectRotated.center.y +  5;
+	int startRowIdx = objectRotated.center.y - 20;   // tinh chỉnh sao cho phù hợp với template
+	int endRowIdx = objectRotated.center.y +  20;
 	int startColIdx = objectRotated.center.x - 20;
 	int endColIdx = objectRotated.center.x + 20;
 

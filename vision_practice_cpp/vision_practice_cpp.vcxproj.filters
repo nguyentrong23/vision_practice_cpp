@@ -24,12 +24,24 @@
     <ClCompile Include="geomaching.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="GeoModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GeoMatch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GeometricModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="geomaching.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GeoModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GeoMatch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

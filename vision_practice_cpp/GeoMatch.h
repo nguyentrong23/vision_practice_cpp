@@ -1,85 +1,105 @@
 #pragma once
-#include "model.h"
+#include "GeoModel.h"
+
+#include <chrono>
+#include <opencv2/highgui.hpp>
 
 using namespace cv;
 using namespace std;
 
 #define MAX_NUM_MODEL (int)10
 #define OBJECT_ROI_BORDER_OFFSET (int)2
+#define SOURCE_THERSHOLD_TOLERANCE  (double)0.05
 
-struct RotatedObject {
-	Mat image;
-	Point2f center;
-	double angle;
+
+struct  RotatedObj {
+    Mat image;
+    Point2f centerCrop;
+    Point2f centerMaxScores;
+    double angle;
 };
 
-struct ObjectInfo
+struct PossibleObject
 {
-	// angle find by pca
-	double pcaAngle;
-	// center find by pca
-	Point2f pcaCenter;
-	// contours index of contours source
-	int conIndex;
-	// contours area;
-	int conArea;
-	// contours center
-	Point2f conCenter;
-	// contours bouding rectangle
-	Rect conBoundingRect;
-	// contours min Rectange area
-	RotatedRect conMinRectArea;
-	// list model need check
-	vector<int> modelCheckList;
-	// rotated image with neative offset
-	RotatedObject rotNegative;
-	// rotated image with positive offset
-	RotatedObject rotPositive;
-	// rotated image with positive offset reserve 180 deg
-	RotatedObject rotNegative_reverse;
-	// rotated image with positive offset reserve 180 deg
-	RotatedObject rotPositive_reverse;
+    // angle find by pca
+    double pcaAngle;
+    // center find by pca
+    Point2f pcaCenter;
+    // contours bouding rectangle
+    Rect conBoundingRect;
+    // contours min Rectange area
+    RotatedRect conMinRectArea;
+    // list model need check
+    vector<int> modelCheckList;
+    // rotated image with neative offset
+     RotatedObj rotNegative;
+    // rotated image with positive offset
+     RotatedObj rotPositive;
+    // rotated image with positive offset reserve 180 deg
+     RotatedObj rotNegative_reverse;
+    // rotated image with positive offset reserve 180 deg
+     RotatedObj rotPositive_reverse;
 };
 
-enum class GetROI_MODE : int {
-	ROI_POSITIVE,
-	ROI_NEGATIVE,
-	ROI_POSITIVE_REVERSE,
-	ROI_NEGATIVE_REVERSE
-};
-
-struct MatchedObjects
+struct MatchedObj
 {
-	Point coordinates;
-	double angle;
-	Mat image;
+    std::string name;
+    double scores;
+    int indexOfSample;
+    Point2f coordinates;
+    double angle;
+    RotatedRect pickingBox;
+    Mat image;
+    Rect rect;
 };
 
 class GeoMatch
 {
 public:
-	GeoMatch();
-	~GeoMatch();
+    GeoMatch();
+    ~GeoMatch();
 
-	bool addGeoMatchModel(String pathTemplate, String modelName);
-	bool addGeoMatchModel(String pathTemplate, String modelName, int pyrDownLevel);
-	void clearMatchModel(void);
-	void removeMatchModel(int index);
-	void removeMatchModel(int startIndex, int endIndex);
-	int GetModelSrcSize(void);
+    bool addGeoMatchModel(String pathTemplate, String modelName);
+    void clearMatchModel(void);
+    void removeMatchModel(int index);
+    void removeMatchModel(int startIndex, int endIndex);
+    void modifyMatchModelAt(int index, GeoModel model);
+    vector<GeoModel> getModelSource();
+    int getModelSourceSize();
+    void setImageSource(string path);
+    void setImageSource(Mat img);
+    bool haveObjectsInPlate();
 
-	void sourceStream(String path);
-	void sourceStream(String path, int pyrDownLevel);
-	void Matching(void);
+    void matching(Mat image, bool boudingBoxChecking);
+    void matching(bool boudingBoxChecking);
 
-	void getPcaOrientation(const vector<Point>& pts, double& angleOutput, Point2f& centerOutput);
-	void getRotatedROI(Mat& matSrc, GetROI_MODE roiMode, model& model, ObjectInfo& object);
-	void getRotatedROI(Mat& matSr, model& model, ObjectInfo& object, GetROI_MODE roiMode);
-	bool matchingScores(RotatedObject& objectRotated, model& model, double& lastMaxScores);
-	bool matchingScores(Mat& inputImage, model& model, double& lastMaxScores);
-	Mat cropImageWithBorderOffset(Mat sourceImage, Rect boxBounding, int border);
+    void getRotatedROI(Mat& matSrc,  RotatedObj& object, Point center, RotatedRect minRectArea);
+    bool matchingScores( RotatedObj& objectRotated, GeoModel& model, double& lastMaxScores);
+    void saveMatchedObjectInfo(MatchedObj& matched,  RotatedObj& objectRotated, GeoModel model, double scores, Point2f pcaCenter);
+
+    static Mat cropImageWithBorderOffset(Mat sourceImage, Rect boxBounding, int border);
+    static void drawPickingBox(Mat& matSrc, RotatedRect rectRot, Scalar color);
+
+    Mat resultImage;
 private:
-	vector<model> ModelSrc;
-	Mat imageSrc;
-	double lastCycleTime = 0;
+    // model source for matching
+    vector<GeoModel> ModelSrc;
+    // matched object list after matching
+    vector<MatchedObj> matchedList;
+    // image source for matching
+    Mat imageSource;
+    // picking box size
+    Size2f pickingBoxSize;
+    // flag indicator has any possible object in plate
+    bool objectsInPlate;
+    // last matching execution time (in millisecond)
+    double lastExecuteTime = 0.0;
+    // lower object threshold ratio
+    const double lowerThreshRatio = 1.0 - SOURCE_THERSHOLD_TOLERANCE;
+    // upper object threshold ratio
+    const double upperThreshRatio = 1.0 + SOURCE_THERSHOLD_TOLERANCE;
 };
+
+
+
+
