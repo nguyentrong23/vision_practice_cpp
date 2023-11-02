@@ -48,7 +48,7 @@ void geomaching::clearMatchModel(void) {
 	ModelSrc.clear();
 }
 
-// remove one model from source with index
+// remove one model from source with index 
 void geomaching::removeMatchModel(int index) {
 
 	if ((index < 0) || (index >= MAX_NUM_MODEL)) {
@@ -333,7 +333,7 @@ void geomaching::getRotatedROI(Mat& matSr, GeometricModel& model, ObjectInfo& ob
 	rotationMatrix.at<double>(1, 2) = -BoundingRect.y;
 	// rotated image
 
-	/*double startClock = clock();*/
+	double startClock = clock();
 	switch (roiMode)
 	{
 	case GetROI_MODE::ROI_POSITIVE:
@@ -350,9 +350,9 @@ void geomaching::getRotatedROI(Mat& matSr, GeometricModel& model, ObjectInfo& ob
 		break;
 	}
 
-	//lastCycleTime = (clock() - startClock) / double(CLOCKS_PER_SEC);
-	//lastCycleTime *= 1000;
-	//cout << "xoay time  : " << lastCycleTime << " ms" << endl;
+	lastCycleTime = (clock() - startClock) / double(CLOCKS_PER_SEC);
+	lastCycleTime *= 1000;
+	cout << "xoay time  : " << lastCycleTime << " ms" << endl;
 
 	// transform vector
 	vector<Point2f> transformBoundingBox;
@@ -394,80 +394,80 @@ void geomaching::getRotatedROI(Mat& matSr, GeometricModel& model, ObjectInfo& ob
 
 
 void geomaching::getRotatedROI(Mat& matSrc, GetROI_MODE roiMode, GeometricModel& model, ObjectInfo& object) {
-//	// calculate top left and bottom right coordinates
-//	Point2i topLeft = object.conBoundingRect.tl();
-//	Point2i botRight = object.conBoundingRect.br();
-//	topLeft.x -= OBJECT_ROI_BORDER_OFFSET;
-//	topLeft.y -= OBJECT_ROI_BORDER_OFFSET;
-//	botRight.x += OBJECT_ROI_BORDER_OFFSET;
-//	botRight.y += OBJECT_ROI_BORDER_OFFSET;
-//	// crop image
-//	Mat cropImg = matSrc(Range(topLeft.y, botRight.y), Range(topLeft.x, botRight.x));
-//	// find center of object after crop
-//	Point2f centerOfObject;
-//	centerOfObject.x = object.pcaCenter.x - topLeft.x;
-//	centerOfObject.y = object.pcaCenter.y - topLeft.y;
-//
-//	int iCols = cropImg.cols;
-//	int iRows = cropImg.rows;
-//	Mat rotationMatrix;
-//	double rotateAngle = 0.0;
-//
-//	switch (roiMode)
-//	{
-//	case GetROI_MODE::ROI_POSITIVE:
-//		rotateAngle = object.pcaAngle + model.getPcaAngle();
-//		rotationMatrix = getRotationMatrix2D(centerOfObject, rotateAngle, 1.0);
-//		break;
-//	case GetROI_MODE::ROI_NEGATIVE:
-//		rotateAngle = object.pcaAngle - model.getPcaAngle();
-//		rotationMatrix = getRotationMatrix2D(centerOfObject, rotateAngle, 1.0);
-//		break;
-//	case GetROI_MODE::ROI_POSITIVE_REVERSE:
-//		rotateAngle = object.pcaAngle + model.getPcaAngle() + 180.0;
-//		rotationMatrix = getRotationMatrix2D(centerOfObject, rotateAngle, 1.0);
-//		break;
-//	case GetROI_MODE::ROI_NEGATIVE_REVERSE:
-//		rotateAngle = object.pcaAngle - model.getPcaAngle() + 180.0;
-//		rotationMatrix = getRotationMatrix2D(centerOfObject, rotateAngle, 1.0);
-//		break;
-//	}
-//
-//	// calculate for resize matrix
-//	double xVar[4] = { rotationMatrix.at<double>(0, 0),
-//						rotationMatrix.at<double>(0, 1),
-//						rotationMatrix.at<double>(1, 0),
-//						rotationMatrix.at<double>(1, 1) };
-//
-//	// find image rotated rectangle verticies
-//	vector<Point> rotatedRect;
-//	rotatedRect.push_back(Point2i(0, 0));
-//	rotatedRect.push_back(Point2i(xVar[0] * iCols, xVar[2] * iCols));
-//	rotatedRect.push_back(Point2i((xVar[0] * iCols + xVar[1] * iRows), (xVar[2] * iCols + xVar[3] * iRows)));
-//	rotatedRect.push_back(Point2i(xVar[1] * iRows, xVar[3] * iRows));
-//	Rect BoundingRect = boundingRect(rotatedRect);
-//
-//	// resize matrix to wrap all image
-//	rotationMatrix.at<double>(0, 2) = -BoundingRect.x;
-//	rotationMatrix.at<double>(1, 2) = -BoundingRect.y;
-//	// rotated image
-//	switch (roiMode)
-//	{
-//	case GetROI_MODE::ROI_POSITIVE:
-//		warpAffine(cropImg, object.rotPositive.image, rotationMatrix, Size(BoundingRect.width, BoundingRect.height));
-//		break;
-//	case GetROI_MODE::ROI_NEGATIVE:
-//		warpAffine(cropImg, object.rotNegative.image, rotationMatrix, Size(BoundingRect.width, BoundingRect.height));
-//		break;
-//	case GetROI_MODE::ROI_POSITIVE_REVERSE:
-//		warpAffine(cropImg, object.rotPositive_reverse.image, rotationMatrix, Size(BoundingRect.width, BoundingRect.height));
-//		break;
-//	case GetROI_MODE::ROI_NEGATIVE_REVERSE:
-//		warpAffine(cropImg, object.rotNegative_reverse.image, rotationMatrix, Size(BoundingRect.width, BoundingRect.height));
-//		break;
-//	}
-//
-//	// transform to vector
+	// calculate top left and bottom right coordinates
+	Point2i topLeft = object.conBoundingRect.tl();
+	Point2i botRight = object.conBoundingRect.br();
+	topLeft.x -= OBJECT_ROI_BORDER_OFFSET;
+	topLeft.y -= OBJECT_ROI_BORDER_OFFSET;
+	botRight.x += OBJECT_ROI_BORDER_OFFSET;
+	botRight.y += OBJECT_ROI_BORDER_OFFSET;
+	// crop image
+	Mat cropImg = matSrc(Range(topLeft.y, botRight.y), Range(topLeft.x, botRight.x));
+	// find center of object after crop
+	Point2f centerOfObject;
+	centerOfObject.x = object.pcaCenter.x - topLeft.x;
+	centerOfObject.y = object.pcaCenter.y - topLeft.y;
+
+	int iCols = cropImg.cols;
+	int iRows = cropImg.rows;
+	Mat rotationMatrix;
+	double rotateAngle = 0.0;
+
+	switch (roiMode)
+	{
+	case GetROI_MODE::ROI_POSITIVE:
+		rotateAngle = object.pcaAngle + model.getPcaAngle();
+		rotationMatrix = getRotationMatrix2D(centerOfObject, rotateAngle, 1.0);
+		break;
+	case GetROI_MODE::ROI_NEGATIVE:
+		rotateAngle = object.pcaAngle - model.getPcaAngle();
+		rotationMatrix = getRotationMatrix2D(centerOfObject, rotateAngle, 1.0);
+		break;
+	case GetROI_MODE::ROI_POSITIVE_REVERSE:
+		rotateAngle = object.pcaAngle + model.getPcaAngle() + 180.0;
+		rotationMatrix = getRotationMatrix2D(centerOfObject, rotateAngle, 1.0);
+		break;
+	case GetROI_MODE::ROI_NEGATIVE_REVERSE:
+		rotateAngle = object.pcaAngle - model.getPcaAngle() + 180.0;
+		rotationMatrix = getRotationMatrix2D(centerOfObject, rotateAngle, 1.0);
+		break;
+	}
+
+	// calculate for resize matrix
+	double xVar[4] = { rotationMatrix.at<double>(0, 0),
+						rotationMatrix.at<double>(0, 1),
+						rotationMatrix.at<double>(1, 0),
+						rotationMatrix.at<double>(1, 1) };
+
+	// find image rotated rectangle verticies
+	vector<Point> rotatedRect;
+	rotatedRect.push_back(Point2i(0, 0));
+	rotatedRect.push_back(Point2i(xVar[0] * iCols, xVar[2] * iCols));
+	rotatedRect.push_back(Point2i((xVar[0] * iCols + xVar[1] * iRows), (xVar[2] * iCols + xVar[3] * iRows)));
+	rotatedRect.push_back(Point2i(xVar[1] * iRows, xVar[3] * iRows));
+	Rect BoundingRect = boundingRect(rotatedRect);
+
+	// resize matrix to wrap all image
+	rotationMatrix.at<double>(0, 2) = -BoundingRect.x;
+	rotationMatrix.at<double>(1, 2) = -BoundingRect.y;
+	// rotated image
+	switch (roiMode)
+	{
+	case GetROI_MODE::ROI_POSITIVE:
+		warpAffine(cropImg, object.rotPositive.image, rotationMatrix, Size(BoundingRect.width, BoundingRect.height));
+		break;
+	case GetROI_MODE::ROI_NEGATIVE:
+		warpAffine(cropImg, object.rotNegative.image, rotationMatrix, Size(BoundingRect.width, BoundingRect.height));
+		break;
+	case GetROI_MODE::ROI_POSITIVE_REVERSE:
+		warpAffine(cropImg, object.rotPositive_reverse.image, rotationMatrix, Size(BoundingRect.width, BoundingRect.height));
+		break;
+	case GetROI_MODE::ROI_NEGATIVE_REVERSE:
+		warpAffine(cropImg, object.rotNegative_reverse.image, rotationMatrix, Size(BoundingRect.width, BoundingRect.height));
+		break;
+	}
+
+	// transform to vector
 }
 
 bool geomaching::matchingScores(RotatedObject& objectRotated, GeometricModel& model, double& lastMaxScores) {  /////////////////////////////////////////////////

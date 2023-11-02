@@ -6,7 +6,7 @@
 
 String path_template = "imgSrc/template.bmp";
 String path_template_flip = "imgSrc/template-flip.bmp";
-String path_source = "imgSrc/sample-2.bmp";
+String path_source = "imgSrc/sample-7.bmp";
 geomaching GeoMatching;
 
 int main()
